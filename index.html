@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Iran War — Interactive Strike Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#e0e0e0;overflow:hidden}
+#map{width:100vw;height:100vh}
+.title-overlay{position:absolute;top:16px;left:60px;z-index:1000;pointer-events:none}
+.title-overlay h1{font-size:22px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.8);letter-spacing:.5px}
+.title-overlay .subtitle{font-size:11px;color:#999;margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.stats-panel{position:absolute;bottom:20px;left:16px;z-index:1000;background:rgba(10,10,10,.92);border:1px solid #333;border-radius:10px;padding:14px 18px;max-width:340px;max-height:60vh;overflow-y:auto;backdrop-filter:blur(8px);font-size:12px;line-height:1.6}
+.stats-panel h3{font-size:13px;font-weight:600;margin-bottom:8px;color:#fff;border-bottom:1px solid #333;padding-bottom:6px}
+.stats-panel .stat-row{display:flex;justify-content:space-between;padding:2px 0}
+.stats-panel .stat-label{color:#aaa}
+.stats-panel .stat-killed{color:#ff6b6b;font-weight:600}
+.stats-panel .stat-injured{color:#ffa94d;font-weight:500}
+.stats-panel .section-head{font-size:11px;font-weight:700;color:#74c0fc;margin-top:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.stats-panel .section-head.iran-strikes{color:#ff6b6b}
+.legend{position:absolute;bottom:20px;right:16px;z-index:1000;background:rgba(10,10,10,.92);border:1px solid #333;border-radius:10px;padding:12px 16px;backdrop-filter:blur(8px);font-size:12px}
+.legend h4{font-size:12px;margin-bottom:8px;color:#fff}
+.legend-item{display:flex;align-items:center;gap:8px;margin:4px 0}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.legend-dot.blue{background:#4dabf7;box-shadow:0 0 8px rgba(77,171,247,.6)}
+.legend-dot.red{background:#ff6b6b;box-shadow:0 0 8px rgba(255,107,107,.6)}
+.legend-dot.orange{background:#ffa94d;box-shadow:0 0 8px rgba(255,169,77,.6)}
+.legend-dot.purple{background:#b197fc;box-shadow:0 0 8px rgba(177,151,252,.6)}
+.leaflet-popup-content-wrapper{background:rgba(15,15,15,.95)!important;color:#e0e0e0!important;border:1px solid #444!important;border-radius:8px!important;box-shadow:0 4px 20px rgba(0,0,0,.6)!important}
+.leaflet-popup-tip{background:rgba(15,15,15,.95)!important;border:1px solid #444!important}
+.leaflet-popup-content{font-size:13px;line-height:1.5;max-width:280px}
+.leaflet-popup-content h3{font-size:15px;font-weight:700;margin-bottom:6px}
+.leaflet-popup-content .pop-type{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px;display:inline-block;padding:2px 8px;border-radius:4px}
+.pop-type.us-israel{background:rgba(77,171,247,.2);color:#74c0fc}
+.pop-type.iran{background:rgba(255,107,107,.2);color:#ff6b6b}
+.leaflet-popup-content .pop-desc{color:#bbb;margin:6px 0}
+.leaflet-popup-content .pop-casualties{margin:8px 0;padding:6px 0;border-top:1px solid #333}
+.leaflet-popup-content .pop-source{font-size:10px;color:#666;margin-top:6px}
+.leaflet-control-layers{background:rgba(10,10,10,.9)!important;border:1px solid #444!important;border-radius:8px!important;color:#e0e0e0!important}
+.leaflet-control-layers-list{padding:4px}
+.leaflet-control-layers label{color:#e0e0e0!important}
+@media(max-width:640px){
+  .stats-panel{max-width:calc(100vw - 32px);bottom:10px;left:10px;font-size:11px;padding:10px 14px}
+  .legend{bottom:10px;right:10px}
+  .title-overlay{left:50px;top:10px}
+  .title-overlay h1{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="title-overlay">
+  <h1>2026 Iran War — Strike Map</h1>
+  <div class="subtitle">Sources: Wikipedia, ACLED, BBC Verify, Reuters, JPost, Al Jazeera &bull; Day 26 (Mar 25)</div>
+</div>
+<div class="stats-panel">
+  <h3>Casualties by Country</h3>
+  <div class="section-head">US/Israeli Strikes on Iran</div>
+  <div class="stat-row"><span class="stat-label">🇮🇷 Iran (civilians)</span><span><span class="stat-killed">1,500+ killed</span> · <span class="stat-injured">19,324 wounded</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇮🇷 Iran (military)</span><span><span class="stat-killed">~6,000 killed</span> · <span class="stat-injured">~15,000 wounded</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇱🇧 Lebanon</span><span><span class="stat-killed">1,039 killed</span> · <span class="stat-injured">2,876 inj.</span></span></div>
+  <div class="section-head iran-strikes">Iranian Strikes on Region</div>
+  <div class="stat-row"><span class="stat-label">🇮🇱 Israel</span><span><span class="stat-killed">24 killed</span> · <span class="stat-injured">4,876 inj.</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇺🇸 US forces</span><span><span class="stat-killed">13 killed</span> · <span class="stat-injured">290 wounded</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇦🇪 UAE</span><span><span class="stat-killed">9 killed</span> · <span class="stat-injured">157 inj.</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇰🇼 Kuwait</span><span><span class="stat-killed">8 killed</span> · <span class="stat-injured">99 inj.</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇶🇦 Qatar</span><span><span class="stat-killed">4 killed</span> · <span class="stat-injured">16 inj.</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇧🇭 Bahrain</span><span><span class="stat-killed">3 killed</span> · <span class="stat-injured">38 inj.</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇴🇲 Oman</span><span><span class="stat-killed">3 killed</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇹🇷 Turkey</span><span><span class="stat-killed">3 killed</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇸🇦 Saudi Arabia</span><span><span class="stat-killed">2 killed</span> · <span class="stat-injured">16 inj.</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇮🇶 Iraq/Kurdistan</span><span><span class="stat-killed">14 killed</span> · <span class="stat-injured">67 inj.</span></span></div>
+  <div class="stat-row"><span class="stat-label">🇯🇴 Jordan</span><span><span class="stat-injured">19 inj.</span></span></div>
+</div>
+<div class="legend">
+  <h4>Legend</h4>
+  <div class="legend-item"><div class="legend-dot blue"></div><span>US/Israeli strikes on Iran</span></div>
+  <div class="legend-item"><div class="legend-dot red"></div><span>Iranian strikes on region</span></div>
+  <div class="legend-item"><div class="legend-dot orange"></div><span>Energy infrastructure</span></div>
+  <div class="legend-item"><div class="legend-dot purple"></div><span>Naval / Hormuz</span></div>
+</div>
+
+<script>
+const map = L.map('map',{center:[29,50],zoom:5,zoomControl:false,attributionControl:false});
+L.control.zoom({position:'topright'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  maxZoom:18,subdomains:'abcd',
+  attribution:'&copy; <a href="https://carto.com/">CARTO</a>'
+}).addTo(map);
+
+function makeIcon(color,size=10){
+  const glow=color==='#4dabf7'?'rgba(77,171,247,.5)':color==='#ff6b6b'?'rgba(255,107,107,.5)':color==='#ffa94d'?'rgba(255,169,77,.5)':'rgba(177,151,252,.5)';
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;box-shadow:0 0 ${size}px ${glow},0 0 ${size*2}px ${glow};border:1.5px solid rgba(255,255,255,.3)"></div>`,
+    iconSize:[size,size],iconAnchor:[size/2,size/2]
+  });
+}
+
+const blueIcon=makeIcon('#4dabf7',12);
+const blueBig=makeIcon('#4dabf7',18);
+const redIcon=makeIcon('#ff6b6b',12);
+const redBig=makeIcon('#ff6b6b',16);
+const orangeIcon=makeIcon('#ffa94d',12);
+const purpleIcon=makeIcon('#b197fc',14);
+
+function popup(title,type,desc,casualties,source,week){
+  const typeClass=type==='US/Israeli Strike'?'us-israel':'iran';
+  let html=`<div class="pop-type ${typeClass}">${type}</div>`;
+  html+=`<h3>${title}</h3>`;
+  if(week) html+=`<div style="font-size:10px;color:#666;margin-bottom:4px">Week ${week} (Feb 28 – Mar 25)</div>`;
+  html+=`<div class="pop-desc">${desc}</div>`;
+  if(casualties) html+=`<div class="pop-casualties">${casualties}</div>`;
+  if(source) html+=`<div class="pop-source">Sources: ${source}</div>`;
+  return html;
+}
+
+// === US/ISRAELI STRIKES ON IRAN ===
+const usIsraelStrikes = L.layerGroup();
+
+const iranTargets = [
+  {ll:[35.6892,51.389],name:"Tehran",icon:blueBig,week:"1–4",
+   desc:"Heaviest-hit city. Leadership compound, presidential office, IRGC HQ, safe houses across multiple districts. Supreme Leader Khamenei killed in initial strikes Feb 28. Pre-dawn bombardments continuing Day 26.",
+   cas:"81+ confirmed strikes (BBC Verify). 12 killed in single attack Mar 25.",src:"BBC Verify, ACLED, Wikipedia"},
+  {ll:[32.6546,51.668],name:"Isfahan",icon:blueIcon,week:"1–4",
+   desc:"Nuclear facilities area, gas company offices, explosives plant. Repeated strikes throughout war. Israel claimed hitting IRGC security HQ.",
+   cas:"Multiple waves of strikes confirmed.",src:"Iran Intl, Reuters, ISW"},
+  {ll:[33.7211,51.7275],name:"Natanz Nuclear Facility",icon:blueBig,week:"1–3",
+   desc:"Key uranium enrichment facility. Struck in initial campaign targeting nuclear infrastructure.",
+   cas:"Nuclear program set back significantly.",src:"BBC, Wikipedia, IAEA"},
+  {ll:[34.88,51.59],name:"Fordow Nuclear Facility",icon:blueIcon,week:"1–2",
+   desc:"Underground nuclear enrichment site. Part of nuclear infrastructure campaign.",
+   src:"Wikipedia, IAEA"},
+  {ll:[38.08,46.2919],name:"Tabriz",icon:blueIcon,week:"3–4",
+   desc:"Northwest Iran. Struck in pre-dawn bombardments alongside Tehran and Isfahan. Geographic expansion of campaign.",
+   src:"Iran Intl"},
+  {ll:[29.5918,52.5837],name:"Shiraz",icon:blueIcon,week:"4",
+   desc:"Southern Iran. Column of smoke after airstrike reported Mar 24. Geographic expansion beyond Tehran/Isfahan corridor.",
+   src:"Iran Intl"},
+  {ll:[31.8974,54.3569],name:"Yazd",icon:blueIcon,week:"4",
+   desc:"Central Iran. Massive explosion reported Mar 25. First Yazd strike in current phase.",
+   src:"Iran Intl"},
+  {ll:[35.84,50.9391],name:"Karaj / Kordan",icon:blueIcon,week:"4",
+   desc:"40km west of Tehran, industrial/military zone. Explosion reported in Kordan area Mar 25.",
+   src:"Iran Intl"},
+  {ll:[27.1865,56.2808],name:"Bandar Abbas",icon:blueIcon,week:"3",
+   desc:"Key southern port directly on Strait of Hormuz. Radio station and communications infrastructure struck.",
+   src:"Iran Intl"},
+  {ll:[28.9234,50.8203],name:"Bushehr Nuclear Plant",icon:blueBig,week:"3",
+   desc:"Russian-built nuclear power plant. IAEA confirmed projectile hit premises ~Mar 18. Russia evacuating personnel. Kremlin warned about proximity of strikes.",
+   cas:"No reactor damage reported (IAEA).",src:"IAEA, AP, Iran Intl, Moscow Times"},
+  {ll:[27.48,52.61],name:"South Pars / Asaluyeh",icon:makeIcon('#ffa94d',16),week:"3",
+   desc:"World's largest gas field (shared with Qatar). Israeli strike Mar 18 caused massive fire. Gas exports to Turkey halted. QatarEnergy declared force majeure on LNG contracts.",
+   cas:"17% of Qatar's LNG export capacity knocked out. Repairs: 3–5 years.",src:"Reuters, Bloomberg, QatarEnergy"},
+  {ll:[30.4265,48.1738],name:"Khorramshahr",icon:blueIcon,week:"4",
+   desc:"Gas pipeline struck near Iraq border. Part of energy infrastructure campaign.",
+   src:"Iran Intl / Fars"},
+  {ll:[37.4722,49.4622],name:"Bandar Anzali (Caspian)",icon:blueIcon,week:"3",
+   desc:"Caspian Sea port. Israeli strikes hit Iranian naval vessels, targeting Russia supply route. Geographic expansion to Caspian Sea.",
+   src:"WSJ, JNS, Al Arabiya"},
+  {ll:[27.15,57.0833],name:"Minab",icon:blueBig,week:"1",
+   desc:"Primary school adjacent to IRGC base struck on first day of war (Feb 28). US Tomahawk identified by experts. Most deadly single strike of the war.",
+   cas:"168+ killed including children.",src:"BBC Verify, Iranian authorities"},
+  {ll:[32.87,51.55],name:"Shahinshahr",icon:blueIcon,week:"4",
+   desc:"Near Isfahan. Evening strikes reported by citizens.",
+   src:"Iran Intl citizen reports"},
+  {ll:[26.95,55.8],name:"Qeshm Island",icon:blueIcon,week:"2",
+   desc:"Desalination plant attack. Strategic island in Strait of Hormuz.",
+   src:"Wikipedia"},
+  {ll:[29.2333,50.3167],name:"Kharg Island",icon:makeIcon('#ffa94d',14),week:"2–4",
+   desc:"Iran's main oil export terminal. US considering ground operation (Axios, JPost). Marines arriving Friday for possible seizure.",
+   src:"Axios, JPost, WSJ"},
+  {ll:[27.5,54.4],name:"Chamran Missile Base",icon:blueIcon,week:"3",
+   desc:"Near Jam City. Struck per ISW special report.",
+   src:"ISW"},
+  {ll:[37.2,49.6],name:"Gilan Province (Caspian)",icon:blueIcon,week:"4",
+   desc:"Caspian coast province. Citizen reports of villas targeted. Strikes reaching northern Iran.",
+   src:"Iran Intl citizen reports"},
+  {ll:[36.5,52.0],name:"Mazandaran Province",icon:blueIcon,week:"4",
+   desc:"Caspian coast province. Strikes expanding to northern Iran for the first time.",
+   src:"Iran Intl citizen reports"}
+];
+
+iranTargets.forEach(t=>{
+  L.marker(t.ll,{icon:t.icon}).bindPopup(popup(t.name,'US/Israeli Strike',t.desc,t.cas||'',t.src,t.week)).addTo(usIsraelStrikes);
+});
+
+// === IRANIAN STRIKES ON REGION ===
+const iranStrikes = L.layerGroup();
+
+const regionTargets = [
+  {ll:[32.0853,34.7818],name:"Tel Aviv, Israel",icon:redBig,week:"1–4",
+   desc:"Multiple missile waves throughout war. Second wave launched Day 25. 'Massive destruction' reported. Residential buildings and civilian structures hit.",
+   cas:"21 civilians killed, 4,829+ injured across Israel. 180 injured in single strike.",src:"AJ, Iran Intl, Israeli health ministry"},
+  {ll:[32.794,34.9896],name:"Haifa, Israel",icon:redIcon,week:"3–4",
+   desc:"Cluster munitions hit suburb. Oil facilities at port damaged. Iranian missiles reaching Knesset.",
+   cas:"Cluster munition hit home, no injuries in that strike.",src:"Iran Intl, Times of Israel"},
+  {ll:[31.7683,35.2137],name:"Jerusalem / Knesset",icon:redIcon,week:"4",
+   desc:"Missile alert briefly halted Knesset (parliament) session. Strikes reaching government institutions.",
+   src:"Iran Intl"},
+  {ll:[31.07,35.21],name:"Dimona / Arad",icon:redIcon,week:"3",
+   desc:"Near Dimona nuclear facility. Iranian missiles struck two southern towns. 180 injured.",
+   cas:"5 killed (Guardian), 180 injured.",src:"Guardian, Israeli health ministry"},
+  {ll:[24.4539,54.3773],name:"Abu Dhabi, UAE",icon:redBig,week:"1–3",
+   desc:"Airport struck, two data centers hit near Abu Dhabi. Landmark sites targeted. UAE suffered highest number of strikes among Gulf states in first 4 days (ACLED).",
+   cas:"2 soldiers + 7 civilians killed, 157 injured total across UAE.",src:"ACLED, ISW, Wikipedia"},
+  {ll:[25.2048,55.2708],name:"Dubai, UAE",icon:redIcon,week:"1",
+   desc:"WSJ reported 2 aircraft hit at Dubai airport early in war. War jitters: markets sliding, property deals slowing.",
+   src:"WSJ, Iran Intl"},
+  {ll:[25.1288,56.3264],name:"Fujairah, UAE",icon:makeIcon('#ffa94d',12),week:"2–3",
+   desc:"Export terminal repeatedly attacked. Key bypass route for Hormuz via Habshan-Fujairah pipeline.",
+   src:"Reuters, IEA"},
+  {ll:[23.8,53.7],name:"Habshan Gas Complex, UAE",icon:makeIcon('#ffa94d',12),week:"2",
+   desc:"Massive gas complex forced to shut down from missile debris.",
+   src:"Reuters"},
+  {ll:[29.3759,47.9774],name:"Kuwait City",icon:redIcon,week:"1–4",
+   desc:"US facilities targeted. 7 power transmission lines knocked out (~500km from Dubai). Oil fields attacked. Friendly fire downed 3 US F-15s.",
+   cas:"4 soldiers + 4 civilians killed, 99 injured.",src:"Iran Intl, ACLED, Wikipedia"},
+  {ll:[29.2266,47.9689],name:"Kuwait International Airport",icon:redIcon,week:"2–4",
+   desc:"Drone struck fuel tank causing fire (CNN). Struck multiple times (Mar 12 and Mar 25). First Gulf civilian airport attack.",
+   src:"CNN, Iran Intl"},
+  {ll:[26.2285,50.586],name:"Manama, Bahrain",icon:redIcon,week:"1–4",
+   desc:"US Fifth Fleet HQ area. Capital damaged, airport hit. Air raid sirens activated. Sitra refinery attacked — force majeure declared. AWS Bahrain cloud region disrupted by drones.",
+   cas:"3 killed, 38 injured. 1 UAE soldier killed in Bahrain.",src:"ACLED, Iran Intl, Reuters, Wikipedia"},
+  {ll:[24.7136,46.6753],name:"Riyadh, Saudi Arabia",icon:redIcon,week:"1–3",
+   desc:"US embassy struck. Ballistic missiles intercepted over Eastern Province. Ras Tanura oil facility shutdown from intercepted drones.",
+   cas:"2 killed, 16 injured across Saudi Arabia.",src:"Iran Intl, ACLED, Wikipedia"},
+  {ll:[26.64,50.15],name:"Ras Tanura, Saudi Arabia",icon:makeIcon('#ffa94d',12),week:"2",
+   desc:"Major oil facility forced to shutdown from intercepted drones. Saudi rerouting exports via East-West pipeline to Yanbu (Red Sea).",
+   src:"Reuters, IEA"},
+  {ll:[25.92,51.54],name:"Ras Laffan, Qatar",icon:makeIcon('#ffa94d',14),week:"3",
+   desc:"Qatar's main gas facility hit. 'Significant damage' — 17% export capacity cut ($20B/year). QatarEnergy declared force majeure. Repairs: 3–5 years.",
+   cas:"4 soldiers killed, 16 injured across Qatar.",src:"QatarEnergy CEO (Reuters), AJ"},
+  {ll:[25.2854,51.531],name:"Doha, Qatar",icon:redIcon,week:"3",
+   desc:"Military helicopter crash killed 7 including 3 Turkish nationals. Qatar initially declined mediation, later reversed to 'working closely with US.'",
+   src:"Iran Intl, Wikipedia"},
+  {ll:[19.67,57.7],name:"Duqm Port, Oman",icon:redIcon,week:"1",
+   desc:"Port struck despite Oman's mediator status. Iran blamed 'autonomous IRGC action.' Oman was hosting US-Iran nuclear talks before the war.",
+   cas:"3 killed.",src:"ACLED, Atlantic Council, Wikipedia"},
+  {ll:[33.3152,44.3661],name:"Baghdad, Iraq",icon:redIcon,week:"1–4",
+   desc:"US facilities targeted. PMF (Popular Mobilization Forces) strikes. Hashd al-Shaabi commander killed. Iraq summoning US and Iran envoys.",
+   cas:"PMF: 80 killed, 130 injured. 6 killed in single PMF strike.",src:"Iran Intl, AJ, Wikipedia"},
+  {ll:[36.1901,44.0119],name:"Erbil, Kurdistan Region",icon:redIcon,week:"1–4",
+   desc:"Airport and US consulate targeted. 6 Peshmerga killed near Erbil. Iranian Kurdish opposition groups also targeted.",
+   cas:"12 fighters + 2 civilians killed, 67 injured in Kurdistan.",src:"Iran Intl, ACLED, Wikipedia"},
+  {ll:[26.5667,56.25],name:"Strait of Hormuz",icon:purpleIcon,week:"2–4",
+   desc:"Iran laid 12+ naval mines (CBS/US officials). IRGC operating toll system (Lloyd's List). 'Non-hostile vessels' may transit with coordination. US destroyed 17 Iranian warships + 130 naval vessels sunk total.",
+   cas:"At least 2 fatalities from vessel strikes.",src:"CBS, Lloyd's List, FT, BBC, US Navy"},
+  {ll:[-7.3195,72.4229],name:"Diego Garcia (BIOT)",icon:redIcon,week:"2",
+   desc:"2 ballistic missiles reportedly launched at US/UK military base. Iran denies responsibility, calls it 'false flag.' Longest-range Iranian strike if confirmed.",
+   src:"AJ, Iran Intl, Wikipedia"},
+  {ll:[34.59,32.98],name:"RAF Akrotiri, Cyprus",icon:redIcon,week:"1",
+   desc:"UK military base on Cyprus struck by drone. Triggered European military deployments to Cyprus.",
+   src:"ACLED, Wikipedia"},
+  {ll:[33.8938,35.5018],name:"Beirut, Lebanon",icon:redIcon,week:"1–4",
+   desc:"Hezbollah joined war on Day 3. Israel striking Dahiyeh (southern suburbs). Qasimiyah Bridge destroyed. Israel envoy expelled after Iranian missile hit Lebanese coast.",
+   cas:"1,039 killed, 2,876 injured in Lebanon.",src:"Lebanese health ministry, AJ, BBC"},
+  {ll:[31.9,35.9],name:"Jordan",icon:redIcon,week:"1",
+   desc:"Struck by Iranian missiles/drones targeting US assets in the region.",
+   cas:"19 injured.",src:"Wikipedia"},
+  {ll:[37.0,35.3],name:"Turkey",icon:redIcon,week:"1",
+   desc:"Struck despite being a NATO member and one of 4 identified mediators. Iran denied responsibility, called it false flag.",
+   cas:"1 soldier + 2 civilians killed.",src:"Iran Intl, Wikipedia"}
+];
+
+regionTargets.forEach(t=>{
+  L.marker(t.ll,{icon:t.icon}).bindPopup(popup(t.name,'Iranian Strike',t.desc,t.cas||'',t.src,t.week)).addTo(iranStrikes);
+});
+
+// Add both layers
+usIsraelStrikes.addTo(map);
+iranStrikes.addTo(map);
+
+// Layer control
+L.control.layers(null,{
+  '🔵 US/Israeli Strikes on Iran': usIsraelStrikes,
+  '🔴 Iranian Strikes on Region': iranStrikes
+},{position:'topright',collapsed:false}).addTo(map);
+
+// Attribution
+L.control.attribution({position:'bottomright',prefix:false}).addTo(map);
+</script>
+</body>
+</html>
