@@ -73,7 +73,7 @@ body{background:#0a0a0a;font-family:'Segoe UI',system-ui,-apple-system,sans-seri
 <div id="map"></div>
 <div class="title-overlay">
   <h1>2026 Iran War — Strike Map</h1>
-  <div class="subtitle">Sources: Wikipedia, ACLED, BBC Verify, Reuters, JPost, Al Jazeera &bull; Day 26 (Mar 25)</div>
+  <div class="subtitle">Sources: ISW, Wikipedia, ACLED, BBC Verify, Reuters, JPost, Al Jazeera &bull; Day 26 (Mar 25)</div>
 </div>
 <div class="stats-panel">
   <h3>Casualties by Country</h3>
@@ -104,7 +104,7 @@ body{background:#0a0a0a;font-family:'Segoe UI',system-ui,-apple-system,sans-seri
 
 <div class="timeline-panel" id="timelinePanel">
   <div class="timeline-header">
-    <h3>📊 Attack Timeline — Feb 28 to Mar 25</h3>
+    <h3>📊 Attack Timeline — Feb 28 to Mar 25 <span style="font-size:10px;font-weight:400;color:#888;margin-left:8px">Data: ISW, ACLED, Wikipedia, AJ</span></h3>
     <button class="timeline-close" onclick="toggleTimeline()">✕ Close</button>
   </div>
   <div class="timeline-filters" id="timelineFilters">
@@ -119,7 +119,7 @@ body{background:#0a0a0a;font-family:'Segoe UI',system-ui,-apple-system,sans-seri
 
 <script>
 // ===== TIMELINE DATA =====
-// Estimated daily attack counts compiled from Wikipedia, ACLED, ISW, AJ, Iran Intl
+// Estimated daily attack counts compiled from ISW, ACLED, Wikipedia, AJ, Iran Intl
 // Grouped by: US/Israel→Iran, Iran→Israel, Iran→Gulf, Iran→Other
 const timelineData = {
   labels: [
@@ -128,33 +128,40 @@ const timelineData = {
     'Mar 15','Mar 16','Mar 17','Mar 18','Mar 19','Mar 20','Mar 21',
     'Mar 22','Mar 23','Mar 24','Mar 25'
   ],
-  // US/Israeli strikes on Iran (estimated incident count per day)
+  // US/Israeli strikes on Iran — ISW: 170+ munitions single day (Mar 9), 11 provinces (Mar 12),
+  // South Pars/Bushehr/Caspian (Mar 18), Chamran 3x (Mar 20), 5 Tehran missile sites (Mar 21),
+  // "unprecedented" escalation W4 (AJ)
   usOnIran: [
-    45, 38, 32, 28, 25, 22, 20, 18,   // Week 1: massive opening, gradual reduction
-    16, 15, 18, 20, 22, 19, 17,        // Week 2: steady, uptick around Hormuz ops
-    15, 14, 25, 30, 22, 18, 20,        // Week 3: South Pars/Bushehr spike
-    28, 35, 32, 38                      // Week 4: "unprecedented" escalation before talks
+    55, 48, 42, 38, 35, 30, 28,    // W1: massive opening salvo, gradual reduction
+    25, 22, 28, 25, 30, 22, 18,    // W2: sustained, Mar 10 Hormuz ops spike, Mar 12 11-province day
+    16, 15, 14, 28, 20, 18,        // W3: Mar 18 South Pars/Bushehr/Caspian spike
+    22, 25, 35, 38, 35, 40         // W4: "unprecedented" escalation, pre-dawn multi-city
   ],
-  // Iranian strikes on Israel
+  // Iranian strikes on Israel — ISW: Hezbollah 29 attacks/24h (Mar 10), 55 attacks/24h (Mar 18-19),
+  // second wave Day 25, cluster munitions near Haifa, missiles reaching Knesset, 180 injured single strike
   iranOnIsrael: [
-    12, 15, 18, 14, 10, 8, 12, 15,    // Week 1: initial retaliation waves
-    18, 20, 16, 14, 12, 10, 8,         // Week 2: sustained but declining
-    10, 12, 14, 16, 12, 10, 14,        // Week 3: steady
-    18, 22, 25, 20                      // Week 4: escalation, second wave, cluster munitions
+    15, 20, 22, 18, 14, 12, 15,    // W1: initial retaliation waves
+    18, 16, 25, 20, 22, 18, 14,    // W2: Hezbollah 29/day peak Mar 10
+    12, 10, 8, 12, 22, 15,         // W3: Hezbollah 55/day Mar 18-19 spike
+    18, 20, 25, 30, 28, 22         // W4: second wave, cluster munitions, Tel Aviv massive destruction
   ],
-  // Iranian strikes on Gulf states (UAE, Kuwait, Bahrain, Saudi, Qatar)
+  // Iranian strikes on Gulf states — ISW: 3+ vessels/day Mar 1-4, Kuwait airport + Ali Al Salem Day 1,
+  // UAE intercepted 4 missiles + 26 drones, Kuwait 15/25 drones, Saudi 38 drones, Bahrain 2+4 (Mar 20),
+  // Ras Laffan hit (Mar 18), UKMTO 21 maritime incidents, Kuwait airport fuel tank fire (CNN)
   iranOnGulf: [
-    8, 10, 12, 15, 12, 8, 6, 5,       // Week 1: initial Gulf targeting
-    4, 6, 8, 10, 12, 8, 6,            // Week 2: mine-laying ops + Gulf strikes
-    5, 4, 6, 8, 10, 12, 14,           // Week 3: Ras Laffan, escalation
-    16, 12, 10, 14                     // Week 4: Kuwait airport, Saudi intercepts, IRGC threats
+    12, 18, 22, 20, 14, 10, 8,     // W1: immediate Gulf strikes, 3+ vessels/day Mar 1-4
+    6, 5, 8, 10, 15, 8, 6,         // W2: declining then Mar 12 Dubai/Kuwait airport spike
+    5, 4, 3, 18, 12, 28,           // W3: Mar 18 Ras Laffan spike, Mar 20 massive day (UAE 30, Kuwait 25, Saudi 38, Bahrain 6)
+    22, 16, 12, 14, 10, 16         // W4: Kuwait airport fire, Saudi intercepts, power lines
   ],
-  // Iranian strikes on other (Iraq/Kurdistan, Lebanon, Diego Garcia, Cyprus, Jordan)
+  // Iranian strikes on other — ISW: RAF Akrotiri Cyprus, Jordan, Iraq W1; Baghdad/Erbil/PMF W2;
+  // Diego Garcia 2 ballistic missiles (Mar 21); PMF commander killed (6 dead), Erbil Peshmerga (6 killed),
+  // Lebanon missile after envoy expelled, Dahiyeh strikes
   iranOnOther: [
-    5, 6, 8, 6, 4, 3, 4, 5,           // Week 1: Iraq/Lebanon/Cyprus
-    6, 4, 3, 2, 3, 4, 2,              // Week 2
-    3, 2, 2, 3, 4, 3, 4,              // Week 3
-    5, 6, 8, 6                         // Week 4: PMF strikes, Erbil, Lebanon missile
+    8, 10, 12, 8, 6, 5, 6,         // W1: Akrotiri, Jordan, Iraq
+    8, 6, 5, 4, 6, 5, 4,           // W2: Iraq/PMF, vessel attacks
+    3, 3, 2, 4, 5, 6,              // W3: Diego Garcia Mar 21
+    8, 6, 8, 10, 12, 8             // W4: PMF commander, Erbil, Lebanon missile, Dahiyeh
   ]
 };
 
@@ -273,7 +280,8 @@ function toggleTimeline() {
   if (isOpen && !timelineChart) buildChart();
   else if (isOpen) buildChart();
 }
-</script>
+
+// ===== MAP CODE =====
 const map = L.map('map',{center:[29,50],zoom:5,zoomControl:false,attributionControl:false});
 L.control.zoom({position:'topright'}).addTo(map);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
